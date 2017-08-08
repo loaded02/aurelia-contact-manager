@@ -19,5 +19,35 @@
       <contact-list class="col-md-4"></contact-list>
       <router-view class="col-md-8"></router-view>
     </div>
+    <div class="row">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Sample RestApi</h3>
+        </div>
+        <div class="panel-body">
+          <form role="form" class="form-horizontal" submit.delegate="onSubmit()">
+            <div class="form-group">
+              <label class="col-sm-2 control-label">Title</label>
+              <div class="col-sm-8">
+                <input type="text" placeholder="title" class="form-control" value.bind="movie.title" change.delegate="delete('director')">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label">Director</label>
+              <div class="col-sm-8">
+                <input type="text" placeholder="director" class="form-control" value.bind="movie.director" change.delegate="delete('title')">
+              </div>
+            </div>
+            <div class="button-bar">
+              <button type="submit" class="btn btn-success">Suche auf Netflix</button>
+            </div>
+          </form>
+
+          <ul>
+            <li repeat.for="movie of movies">${movie.show_title} - ${movie.director}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

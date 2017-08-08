@@ -3,12 +3,17 @@ import {EventAggregator} from 'aurelia-event-aggregator';
 import {WebAPI} from './web-api';
 import {ContactUpdated,ContactViewed} from './messages';
 import {areEqual} from './utility';
+import {Constants} from './Constants'
+import {BindingSignaler} from 'aurelia-templating-resources';
 
-@inject(WebAPI, EventAggregator)
+@inject(WebAPI, EventAggregator, BindingSignaler)
 export class ContactDetail {
-  constructor(api, ea){
+  roles = Constants.ROLES;
+  
+  constructor(api, ea, bs){
     this.api = api;
     this.ea = ea;
+    this.bs = bs;
   }
   
   activate(params, routeConfig) {
@@ -47,5 +52,13 @@ export class ContactDetail {
     }
     
     return true;
+  }
+  
+  onChange() {
+    this.bs.signal('my-signal')
+  }
+  
+  getUserRole() {
+    return this.contact.role;
   }
 }

@@ -1,3 +1,6 @@
+import {HttpClient, json} from 'aurelia-fetch-client';
+import {inject} from 'aurelia-dependency-injection';
+
 let latency = 200;
 let id = 0;
 
@@ -43,8 +46,13 @@ let contacts = [
   }
 ];
 
+@inject(HttpClient)
 export class WebAPI {
   isRequesting = false;
+  
+  constructor(http) {
+    this.http = http;
+  }
   
   getContactList(){
     this.isRequesting = true;
@@ -92,5 +100,17 @@ export class WebAPI {
         resolve(instance);
       }, latency);
     });
+  }
+  
+  //https://netflixroulette.net/api/
+  getMovies(director, title) {
+    let url = '';
+    if (director !== '')
+      url = `https://netflixroulette.net/api/api.php?director=${encodeURIComponent(director)}`
+    else
+      url = `https://netflixroulette.net/api/api.php?title=${encodeURIComponent(title)}`
+    
+    return this.http.fetch(url)
+      .then(response => response.json())
   }
 }
