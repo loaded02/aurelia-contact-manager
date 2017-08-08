@@ -24,6 +24,7 @@ export class ContactDetail {
       this.routeConfig.navModel.setTitle(contact.firstName);
       this.originalContact = JSON.parse(JSON.stringify(contact));
       this.ea.publish(new ContactViewed(this.contact));
+      this.onChange()
     });
   }
   
