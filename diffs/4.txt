@@ -1,0 +1,124 @@
+###################Contact-detail.js
+import {inject} from 'aurelia-framework';
+import {EventAggregator} from 'aurelia-event-aggregator';
+import {WebAPI} from './web-api';
+import {ContactUpdated,ContactViewed} from './messages';
+import {areEqual} from './utility';
+import {Constants} from './Constants'
+import {BindingSignaler} from 'aurelia-templating-resources';
+
+@inject(WebAPI, EventAggregator, BindingSignaler)
+export class ContactDetail {
+  roles = Constants.ROLES;
+
+  constructor(api, ea, bs){
+    this.api = api;
+    this.ea = ea;
+    this.bs = bs;
+  }
+
+  activate(params, routeConfig) {
+    this.routeConfig = routeConfig;
+
+    return this.api.getContactDetails(params.id).then(contact => {
+      this.contact = contact;
+      this.routeConfig.navModel.setTitle(contact.firstName);
+      this.originalContact = JSON.parse(JSON.stringify(contact));
+      this.ea.publish(new ContactViewed(this.contact));
+      this.onChange()
+    });
+  }
+
+  get canSave() {
+    return this.contact.firstName && this.contact.lastName && !this.api.isRequesting;
+  }
+
+  save() {
+    this.api.saveContact(this.contact).then(contact => {
+      this.contact = contact;
+      this.routeConfig.navModel.setTitle(contact.firstName);
+      this.originalContact = JSON.parse(JSON.stringify(contact));
+      this.ea.publish(new ContactUpdated(this.contact));
+    });
+  }
+
+  canDeactivate() {
+    if(!areEqual(this.originalContact, this.contact)){
+      let result = confirm('You have unsaved changes. Are you sure you wish to leave?');
+
+      if(!result) {
+        this.ea.publish(new ContactViewed(this.contact));
+      }
+
+      return result;
+    }
+
+    return true;
+  }
+
+  onChange() {
+    this.bs.signal('my-signal')
+  }
+
+  getUserRole() {
+    return this.contact.role;
+  }
+}
+
+
+###################Contact-detail.html
+<template>
+  <div class="panel panel-primary">
+    <div class="panel-heading">
+      <h3 class="panel-title">Profile</h3>
+    </div>
+    <div class="panel-body">
+      <form role="form" class="form-horizontal">
+        <div class="form-group">
+          <label class="col-sm-2 control-label">First Name</label>
+          <div class="col-sm-10">
+            <input type="text" placeholder="first name" class="form-control" value.bind="contact.firstName">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="col-sm-2 control-label">Last Name</label>
+          <div class="col-sm-10">
+            <input type="text" placeholder="last name" class="form-control" value.bind="contact.lastName">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="col-sm-2 control-label">Email</label>
+          <div class="col-sm-10">
+            <input type="text" placeholder="email" class="form-control" value.bind="contact.email">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="col-sm-2 control-label">Phone Number</label>
+          <div class="col-sm-10">
+            <input type="text" placeholder="phone number" class="form-control" value.bind="contact.phoneNumber">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="col-sm-2 control-label">Role</label>
+          <div class="col-sm-10">
+            <select class="form-control" value.bind="contact.role" change.delegate="onChange() & debounce:850">
+              <option repeat.for="role of roles" value.bind="role">${role}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="col-sm-12 control-label">${getUserRole() & signal:'my-signal'}</div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="button-bar">
+    <button class="btn btn-success" click.delegate="save()" disabled.bind="!canSave">Save</button>
+  </div>
+</template>

@@ -1,0 +1,229 @@
+###################aurelia.json
+{
+  "name": "aurelia-fetch-client",
+  "main": "aurelia-fetch-client",
+  "path": "../node_modules/aurelia-fetch-client/dist/amd",
+  "resources": []
+}
+
+###################App.js
+import {inject} from 'aurelia-framework';
+import {WebAPI} from './web-api';
+
+@inject(WebAPI)
+export class App {
+  movie = {title: '', director: ''} // Quentin Tarantino, Attack on titan
+  movies = []
+
+  constructor(api) {
+    this.api = api;
+  }
+
+  configureRouter(config, router) {
+    config.title = 'Contacts';
+    config.map([
+      { route: '',              moduleId: 'no-selection',   title: 'Select'},
+      { route: 'contacts/:id',  moduleId: 'contact-detail', name:'contacts' }
+    ]);
+
+    this.router = router;
+  }
+
+  onSubmit() {
+    this.api.getMovies(this.movie.director, this.movie.title)
+      .then(response => {
+        this.movies.splice(0);
+        if (response.hasOwnProperty('errorcode')) {
+          this.movies.push({show_title: response.errorcode, director: response.message})
+        } else {
+          if (Array.isArray(response))
+            this.movies.push(...response);
+          else
+            this.movies.push(response);
+        }
+      })
+  }
+
+  delete(input) {
+    if (input === 'title') {
+      this.movie.title = '';
+    } else {
+      this.movie.director = '';
+    }
+  }
+}
+
+
+###################App.html
+<template>
+  <require from="bootstrap/css/bootstrap.css"></require>
+  <require from="./styles.css"></require>
+  <require from="./contact-list"></require>
+
+  <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="#">
+        <i class="fa fa-user"></i>
+        <span>Contacts</span>
+      </a>
+    </div>
+  </nav>
+
+  <loading-indicator loading.bind="router.isNavigating || api.isRequesting"></loading-indicator>
+
+  <div class="container">
+    <div class="row">
+      <contact-list class="col-md-4"></contact-list>
+      <router-view class="col-md-8"></router-view>
+    </div>
+    <div class="row">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Sample RestApi</h3>
+        </div>
+        <div class="panel-body">
+          <form role="form" class="form-horizontal" submit.delegate="onSubmit()">
+            <div class="form-group">
+              <label class="col-sm-2 control-label">Title</label>
+              <div class="col-sm-8">
+                <input type="text" placeholder="title" class="form-control" value.bind="movie.title" change.delegate="delete('director')">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label">Director</label>
+              <div class="col-sm-8">
+                <input type="text" placeholder="director" class="form-control" value.bind="movie.director" change.delegate="delete('title')">
+              </div>
+            </div>
+            <div class="button-bar">
+              <button type="submit" class="btn btn-success">Suche auf Netflix</button>
+            </div>
+          </form>
+
+          <ul>
+            <li repeat.for="movie of movies">${movie.show_title} - ${movie.director}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+
+###################WepApi.js
+import {HttpClient, json} from 'aurelia-fetch-client';
+import {inject} from 'aurelia-dependency-injection';
+
+let latency = 200;
+let id = 0;
+
+function getId(){
+  return ++id;
+}
+
+let contacts = [
+  {
+    id:getId(),
+    firstName:'John',
+    lastName:'Tolkien',
+    email:'tolkien@inklings.com',
+    phoneNumber:'867-5309'
+  },
+  {
+    id:getId(),
+    firstName:'Clive',
+    lastName:'Lewis',
+    email:'lewis@inklings.com',
+    phoneNumber:'867-5309'
+  },
+  {
+    id:getId(),
+    firstName:'Owen',
+    lastName:'Barfield',
+    email:'barfield@inklings.com',
+    phoneNumber:'867-5309'
+  },
+  {
+    id:getId(),
+    firstName:'Charles',
+    lastName:'Williams',
+    email:'williams@inklings.com',
+    phoneNumber:'867-5309'
+  },
+  {
+    id:getId(),
+    firstName:'Roger',
+    lastName:'Green',
+    email:'green@inklings.com',
+    phoneNumber:'867-5309'
+  }
+];
+
+@inject(HttpClient)
+export class WebAPI {
+  isRequesting = false;
+
+  constructor(http) {
+    this.http = http;
+  }
+
+  getContactList(){
+    this.isRequesting = true;
+    return new Promise(resolve => {
+      setTimeout(() => {
+        let results = contacts.map(x =>  { return {
+          id:x.id,
+          firstName:x.firstName,
+          lastName:x.lastName,
+          email:x.email
+        }});
+        resolve(results);
+        this.isRequesting = false;
+      }, latency);
+    });
+  }
+
+  getContactDetails(id){
+    this.isRequesting = true;
+    return new Promise(resolve => {
+      setTimeout(() => {
+        let found = contacts.filter(x => x.id == id)[0];
+        resolve(JSON.parse(JSON.stringify(found)));
+        this.isRequesting = false;
+      }, latency);
+    });
+  }
+
+  saveContact(contact){
+    this.isRequesting = true;
+    return new Promise(resolve => {
+      setTimeout(() => {
+        let instance = JSON.parse(JSON.stringify(contact));
+        let found = contacts.filter(x => x.id == contact.id)[0];
+
+        if(found){
+          let index = contacts.indexOf(found);
+          contacts[index] = instance;
+        }else{
+          instance.id = getId();
+          contacts.push(instance);
+        }
+
+        this.isRequesting = false;
+        resolve(instance);
+      }, latency);
+    });
+  }
+
+  //https://netflixroulette.net/api/
+  getMovies(director, title) {
+    let url = '';
+    if (director !== '')
+      url = `https://netflixroulette.net/api/api.php?director=${encodeURIComponent(director)}`
+    else
+      url = `https://netflixroulette.net/api/api.php?title=${encodeURIComponent(title)}`
+
+    return this.http.fetch(url)
+      .then(response => response.json())
+  }
+}
